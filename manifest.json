@@ -2,6 +2,7 @@
   "manifest_version": 3,
   "name": "Tab Organizer Pro",
   "description": "Automatically organize tabs by similarity, split into windows, and manage tabs in a drag-and-drop dashboard.",
+  "homepage_url": "https://github.com/zdirani88/tab-organizer",
   "version": "0.1.4",
   "permissions": [
     "tabs",

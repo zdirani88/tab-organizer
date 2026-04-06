@@ -1,15 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Tab Organizer">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#4b7bf0"/>
-      <stop offset="100%" stop-color="#2f5ecf"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f766e"/>
+      <stop offset="55%" stop-color="#0f9f8f"/>
+      <stop offset="100%" stop-color="#f4b942"/>
     </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0a3d38" flood-opacity="0.2"/>
+    </filter>
   </defs>
-  <rect x="0" y="0" width="128" height="128" rx="24" fill="url(#bg)"/>
-  <rect x="28" y="24" width="76" height="24" rx="7" fill="#fff" opacity="0.95"/>
-  <rect x="20" y="50" width="84" height="24" rx="7" fill="#fff" opacity="0.94"/>
-  <rect x="12" y="76" width="92" height="24" rx="7" fill="#fff" opacity="0.92"/>
-  <rect x="34" y="31" width="22" height="5" rx="2.5" fill="#2f5ecf"/>
-  <rect x="26" y="57" width="24" height="5" rx="2.5" fill="#2f5ecf"/>
-  <rect x="18" y="83" width="26" height="5" rx="2.5" fill="#2f5ecf"/>
+  <rect x="6" y="6" width="116" height="116" rx="30" fill="url(#bg)"/>
+  <circle cx="96" cy="33" r="11" fill="#fff3d1" opacity="0.95"/>
+  <g filter="url(#shadow)">
+    <rect x="22" y="28" width="62" height="44" rx="12" fill="#fff8eb"/>
+    <rect x="34" y="40" width="28" height="6" rx="3" fill="#0f766e"/>
+    <rect x="34" y="52" width="36" height="6" rx="3" fill="#0f9f8f" opacity="0.85"/>
+    <path d="M75 28h18c7.18 0 13 5.82 13 13v16c0 7.18-5.82 13-13 13H75V28z" fill="#1f2937" opacity="0.12"/>
+    <rect x="44" y="58" width="40" height="38" rx="11" fill="#ffffff"/>
+    <rect x="56" y="69" width="17" height="5" rx="2.5" fill="#f4b942"/>
+    <rect x="56" y="79" width="17" height="5" rx="2.5" fill="#0f9f8f"/>
+    <rect x="30" y="78" width="44" height="26" rx="10" fill="#103c39"/>
+    <path d="M44 90l8 8 18-22" fill="none" stroke="#fff8eb" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"/>
+  </g>
 </svg>

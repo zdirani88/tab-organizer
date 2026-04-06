@@ -57,3 +57,8 @@ Chrome extension to auto-organize tabs by similarity, split tabs into windows wi
 - Extension pages are excluded from auto-organization.
 - If no eligible tabs are found, the organizer exits safely.
 - JavaScript syntax checks were not run locally because `node` is not installed in this environment.
+
+## Chrome Web Store
+
+- Submission checklist: `CHROME_WEB_STORE.md`
+- Privacy policy source: `PRIVACY_POLICY.md`
