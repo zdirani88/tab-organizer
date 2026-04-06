@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tab Organizer</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <main class="panel">
+    <header class="top">
+      <h1>Tab Organizer</h1>
+      <button id="dashboardBtn" class="dashboard-cta">Open dashboard</button>
+    </header>
+
+    <section class="search-section">
+      <label class="field">
+        <span>Search tabs</span>
+        <input id="searchInput" type="text" placeholder="Type tab title or URL" />
+      </label>
+      <div id="searchResults" class="search-results"></div>
+    </section>
+
+    <section class="recent-section">
+      <p class="section-title">Recent tabs</p>
+      <div id="recentTabs" class="search-results"></div>
+    </section>
+
+    <section class="settings-card">
+      <div class="grid-two">
+        <label class="field compact">
+          <span>Organize mode</span>
+          <select id="mode">
+            <option value="smart">Smart (category + domain)</option>
+            <option value="domain">Domain</option>
+            <option value="title">Title similarity</option>
+            <option value="category">Category first</option>
+          </select>
+        </label>
+
+        <label class="field compact">
+          <span>Max tabs/window</span>
+          <input id="maxTabsPerWindow" type="number" min="1" max="50" value="10" />
+        </label>
+      </div>
+
+      <div class="check-grid">
+        <label class="checkbox-row compact-row">
+          <input id="includePinned" type="checkbox" />
+          <span>Include pinned</span>
+        </label>
+
+        <label class="checkbox-row compact-row">
+          <input id="separateGoogleWorkspace" type="checkbox" checked />
+          <span>Split Docs/Sheets/Slides</span>
+        </label>
+      </div>
+
+      <div class="grid-two">
+        <label class="field compact">
+          <span>Stale days</span>
+          <input id="cleanupStaleDays" type="number" min="1" max="365" value="14" />
+        </label>
+
+        <label class="field compact">
+          <span>Schedule</span>
+          <select id="scheduleMode">
+            <option value="off">Off</option>
+            <option value="hourly">Every X hours</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+          </select>
+        </label>
+      </div>
+
+      <label id="scheduleIntervalWrap" class="field compact">
+        <span>Interval (hours)</span>
+        <input id="scheduleIntervalHours" type="number" min="1" max="168" value="24" />
+      </label>
+
+      <div id="scheduleTimeWrap" class="grid-two">
+        <label class="field compact">
+          <span>Weekday</span>
+          <select id="scheduleWeekday">
+            <option value="0">Sunday</option>
+            <option value="1">Monday</option>
+            <option value="2">Tuesday</option>
+            <option value="3">Wednesday</option>
+            <option value="4">Thursday</option>
+            <option value="5">Friday</option>
+            <option value="6">Saturday</option>
+          </select>
+        </label>
+
+        <label class="field compact">
+          <span>Time</span>
+          <input id="scheduleTime" type="time" value="09:00" />
+        </label>
+      </div>
+    </section>
+
+    <div class="action-grid">
+      <button id="organizeBtn" class="primary">Auto organize now</button>
+      <button id="cleanupBtn" class="secondary">Cleanup tabs</button>
+      <button id="restoreBtn" class="secondary">Restore</button>
+    </div>
+
+    <p id="status" aria-live="polite"></p>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

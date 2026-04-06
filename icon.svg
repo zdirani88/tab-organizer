@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Tab Organizer">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4b7bf0"/>
+      <stop offset="100%" stop-color="#2f5ecf"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="128" height="128" rx="24" fill="url(#bg)"/>
+  <rect x="28" y="24" width="76" height="24" rx="7" fill="#fff" opacity="0.95"/>
+  <rect x="20" y="50" width="84" height="24" rx="7" fill="#fff" opacity="0.94"/>
+  <rect x="12" y="76" width="92" height="24" rx="7" fill="#fff" opacity="0.92"/>
+  <rect x="34" y="31" width="22" height="5" rx="2.5" fill="#2f5ecf"/>
+  <rect x="26" y="57" width="24" height="5" rx="2.5" fill="#2f5ecf"/>
+  <rect x="18" y="83" width="26" height="5" rx="2.5" fill="#2f5ecf"/>
+</svg>

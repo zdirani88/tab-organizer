@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tab Organizer Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Tab Organizer Dashboard</h1>
+      <p>Each column is a browser window. Drag tabs across columns, then apply.</p>
+    </div>
+
+    <div class="controls">
+      <label>
+        <span>Mode</span>
+        <select id="mode">
+          <option value="smart">Smart</option>
+          <option value="domain">Domain</option>
+          <option value="title">Title similarity</option>
+          <option value="category">Category first</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Max tabs/window</span>
+        <input id="maxTabsPerWindow" type="number" min="1" max="50" value="10" />
+      </label>
+
+      <label class="inline"><input id="includePinned" type="checkbox" />Include pinned</label>
+      <label class="inline"><input id="separateGoogleWorkspace" type="checkbox" checked />Split Docs/Sheets/Slides</label>
+
+      <button id="autoBtn" class="primary">Auto organize</button>
+      <button id="applyBtn" class="accent">Apply manual layout</button>
+      <button id="refreshBtn" class="ghost">Refresh</button>
+    </div>
+  </header>
+
+  <section class="status-row">
+    <p id="status" aria-live="polite"></p>
+  </section>
+
+  <section class="todo-row">
+    <div class="todo-head">
+      <h2>Read Later / TODO</h2>
+      <button id="clearTodoBtn" class="ghost" type="button">Clear list</button>
+    </div>
+    <div id="todoList" class="todo-list"></div>
+  </section>
+
+  <main id="board" class="board"></main>
+
+  <template id="tabCardTemplate">
+    <article class="tab-card" draggable="true">
+      <img class="favicon" alt="" referrerpolicy="no-referrer" />
+      <div class="meta">
+        <h3></h3>
+        <p></p>
+      </div>
+      <button class="later-tab" type="button" aria-label="Add to read later" title="Add to Read Later">+</button>
+      <button class="close-tab" type="button" aria-label="Close tab" title="Close tab">×</button>
+    </article>
+  </template>
+
+  <script type="module" src="dashboard.js"></script>
+</body>
+</html>
