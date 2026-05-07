@@ -3,9 +3,18 @@ import {
   buildOrderedItems,
   chunkItems,
   planWindowsByGroup,
+  planTabGroups,
   summarizeCounts,
   classifyTab
 } from "./organizer-core.js";
+
+import {
+  getGleanConfig,
+  saveGleanConfig,
+  clearGleanConfig,
+  isGleanConfigured,
+  organizeTabsWithGlean
+} from "./glean.js";
 
 const EXTENSION_ROOT = chrome.runtime.getURL("");
 const LAST_SESSION_KEY = "lastSessionSnapshot";
@@ -34,8 +43,12 @@ function isSessionTab(tab) {
   return true;
 }
 
-async function queryEligibleTabs(settings) {
-  const tabs = await chrome.tabs.query({});
+async function queryEligibleTabs(settings, options = {}) {
+  const queryOpts = {};
+  if (settings.profileScope === "currentWindow" && options.sourceWindowId) {
+    queryOpts.windowId = options.sourceWindowId;
+  }
+  const tabs = await chrome.tabs.query(queryOpts);
   return tabs.filter((tab) => isManagedTab(tab, settings));
 }
 
@@ -339,18 +352,77 @@ async function enforceWindowCap(maxTabsPerWindow, settings) {
   }
 }
 
+const TAB_GROUP_COLORS = ["blue", "green", "yellow", "purple", "cyan", "orange", "pink", "red", "grey"];
+
+async function applyTabGroups(items, settings, options = {}) {
+  const planned = planTabGroups(items, settings);
+  if (!planned.length) return { totalTabs: 0, totalGroups: 0, totalWindows: 1 };
+
+  const targetWindowId = options.sourceWindowId || items[0].tab.windowId;
+
+  const tabIds = items.map((item) => item.tab.id);
+  const tabsNotInTarget = items.filter((item) => item.tab.windowId !== targetWindowId);
+  if (tabsNotInTarget.length) {
+    await chrome.tabs.move(
+      tabsNotInTarget.map((item) => item.tab.id),
+      { windowId: targetWindowId, index: -1 }
+    );
+  }
+
+  const existingGroups = await chrome.tabGroups.query({ windowId: targetWindowId });
+  const existingTabIds = new Set(tabIds);
+  for (const group of existingGroups) {
+    const groupTabs = await chrome.tabs.query({ groupId: group.id });
+    const hasOurTabs = groupTabs.some((t) => existingTabIds.has(t.id));
+    if (hasOurTabs) {
+      await chrome.tabs.ungroup(groupTabs.filter((t) => existingTabIds.has(t.id)).map((t) => t.id));
+    }
+  }
+
+  let colorIdx = 0;
+  for (const group of planned) {
+    const groupTabIds = group.items.map((item) => item.tab.id);
+    if (!groupTabIds.length) continue;
+
+    const groupId = await chrome.tabs.group({ tabIds: groupTabIds, createProperties: { windowId: targetWindowId } });
+    const color = TAB_GROUP_COLORS[colorIdx % TAB_GROUP_COLORS.length];
+    const title = group.label.length > 20 ? group.label.slice(0, 20) : group.label;
+    await chrome.tabGroups.update(groupId, { title, color, collapsed: false });
+    colorIdx += 1;
+  }
+
+  if (!options.preserveFocus) {
+    await chrome.windows.update(targetWindowId, { focused: true });
+  }
+
+  return {
+    totalTabs: items.length,
+    totalGroups: planned.length,
+    totalWindows: 1
+  };
+}
+
 async function organizeTabs(overrides = {}, options = {}) {
   const settings = await getSettings(overrides);
   await saveSettings(settings);
 
-  const tabs = await queryEligibleTabs(settings);
+  const tabs = await queryEligibleTabs(settings, { sourceWindowId: options.sourceWindowId });
   const items = buildOrderedItems(tabs, settings);
   if (!items.length) {
     return { settings, totalTabs: 0, totalGroups: 0, totalWindows: 0 };
   }
 
-  const plannedWindows = planWindowsByGroup(items, settings.maxTabsPerWindow, settings);
   await backupCurrentSession();
+
+  if (settings.groupingMethod === "tabGroups") {
+    const counts = await applyTabGroups(items, settings, options);
+    if (options.preserveFocusTabId) {
+      await activateTab(options.preserveFocusTabId).catch(() => {});
+    }
+    return { settings, ...counts };
+  }
+
+  const plannedWindows = planWindowsByGroup(items, settings.maxTabsPerWindow, settings);
   await movePlannedWindows(plannedWindows, !options.preserveFocus);
   await enforceWindowCap(settings.maxTabsPerWindow, settings);
 
@@ -652,13 +724,109 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   });
 });
 
+async function organizeTabsWithGleanFlow(overrides = {}, options = {}) {
+  const settings = await getSettings(overrides);
+  const config = await getGleanConfig();
+  if (!isGleanConfigured(config)) {
+    throw new Error("Glean is not configured. Please set your API token first.");
+  }
+
+  const tabs = await queryEligibleTabs(settings, { sourceWindowId: options.sourceWindowId });
+  if (!tabs.length) {
+    return { settings, totalTabs: 0, totalGroups: 0, totalWindows: 1, gleanGroups: [] };
+  }
+
+  await backupCurrentSession();
+
+  const tabsByWindow = new Map();
+  for (const tab of tabs) {
+    const key = tab.windowId;
+    if (!tabsByWindow.has(key)) tabsByWindow.set(key, []);
+    tabsByWindow.get(key).push(tab);
+  }
+
+  const allGleanGroups = [];
+
+  for (const [, windowTabs] of tabsByWindow) {
+    const tabPayload = windowTabs.map(t => ({
+      id: t.id,
+      url: t.url || "",
+      title: t.title || "Untitled",
+      windowId: t.windowId
+    }));
+
+    const gleanResult = await organizeTabsWithGlean(tabPayload, config);
+    allGleanGroups.push(...gleanResult.groups);
+  }
+
+  const targetWindowId = options.sourceWindowId || tabs[0].windowId;
+  const tabIdsByUrl = new Map();
+  for (const tab of tabs) {
+    tabIdsByUrl.set(tab.url, tab.id);
+  }
+
+  const tabsNotInTarget = tabs.filter(t => t.windowId !== targetWindowId);
+  if (tabsNotInTarget.length) {
+    await chrome.tabs.move(
+      tabsNotInTarget.map(t => t.id),
+      { windowId: targetWindowId, index: -1 }
+    );
+  }
+
+  const existingTabIds = new Set(tabs.map(t => t.id));
+  const existingGroups = await chrome.tabGroups.query({ windowId: targetWindowId });
+  for (const group of existingGroups) {
+    const groupTabs = await chrome.tabs.query({ groupId: group.id });
+    const ourTabs = groupTabs.filter(t => existingTabIds.has(t.id));
+    if (ourTabs.length) {
+      await chrome.tabs.ungroup(ourTabs.map(t => t.id));
+    }
+  }
+
+  let colorIdx = 0;
+  for (const group of allGleanGroups) {
+    const groupTabIds = group.tabs
+      .map(t => tabIdsByUrl.get(t.url))
+      .filter(id => typeof id === "number");
+
+    if (!groupTabIds.length) continue;
+
+    const groupId = await chrome.tabs.group({
+      tabIds: groupTabIds,
+      createProperties: { windowId: targetWindowId }
+    });
+    const color = TAB_GROUP_COLORS[colorIdx % TAB_GROUP_COLORS.length];
+    const title = group.groupName.length > 20 ? group.groupName.slice(0, 20) : group.groupName;
+    await chrome.tabGroups.update(groupId, { title, color, collapsed: false });
+    colorIdx += 1;
+  }
+
+  if (!options.preserveFocus) {
+    await chrome.windows.update(targetWindowId, { focused: true });
+  }
+
+  return {
+    settings,
+    totalTabs: tabs.length,
+    totalGroups: allGleanGroups.length,
+    totalWindows: 1,
+    gleanGroups: allGleanGroups.map(g => ({
+      groupName: g.groupName,
+      tabCount: g.tabs.length,
+      explanation: g.explanation
+    }))
+  };
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
     if (msg?.type === "ORGANIZE_TABS") {
       const preserveFocusTabId = msg.preserveFocus ? sender?.tab?.id : null;
+      const sourceWindowId = msg.sourceWindowId || sender?.tab?.windowId || null;
       const result = await organizeTabs(msg.settings || {}, {
         preserveFocus: !!msg.preserveFocus,
-        preserveFocusTabId
+        preserveFocusTabId,
+        sourceWindowId
       });
       sendResponse({ ok: true, result });
       return;
@@ -765,6 +933,40 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     if (msg?.type === "CLEAR_READ_LATER_ITEMS") {
       const result = await clearReadLaterItems();
+      sendResponse({ ok: true, result });
+      return;
+    }
+
+    if (msg?.type === "GET_GLEAN_CONFIG") {
+      const config = await getGleanConfig();
+      sendResponse({ ok: true, result: { configured: isGleanConfigured(config), instance: config.instance } });
+      return;
+    }
+
+    if (msg?.type === "SAVE_GLEAN_CONFIG") {
+      await saveGleanConfig(msg.token || "", msg.instance || "");
+      const config = await getGleanConfig();
+      sendResponse({ ok: true, result: { configured: isGleanConfigured(config) } });
+      return;
+    }
+
+    if (msg?.type === "CLEAR_GLEAN_CONFIG") {
+      await clearGleanConfig();
+      sendResponse({ ok: true, result: { configured: false } });
+      return;
+    }
+
+    if (msg?.type === "ORGANIZE_TABS_GLEAN") {
+      const preserveFocusTabId = msg.preserveFocus ? sender?.tab?.id : null;
+      const sourceWindowId = msg.sourceWindowId || sender?.tab?.windowId || null;
+      const result = await organizeTabsWithGleanFlow(msg.settings || {}, {
+        preserveFocus: !!msg.preserveFocus,
+        preserveFocusTabId,
+        sourceWindowId
+      });
+      if (preserveFocusTabId) {
+        await activateTab(preserveFocusTabId).catch(() => {});
+      }
       sendResponse({ ok: true, result });
       return;
     }
