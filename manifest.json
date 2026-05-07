@@ -1,13 +1,17 @@
 {
   "manifest_version": 3,
   "name": "Tab Organizer Pro",
-  "description": "Automatically organize tabs by similarity, split into windows, and manage tabs in a drag-and-drop dashboard.",
+  "description": "Automatically organize tabs by similarity, split into windows, and manage tabs in a drag-and-drop dashboard. Supports AI-powered organization via Glean.",
   "homepage_url": "https://github.com/zdirani88/tab-organizer",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "permissions": [
     "tabs",
+    "tabGroups",
     "storage",
     "alarms"
+  ],
+  "host_permissions": [
+    "https://*.glean.com/*"
   ],
   "background": {
     "service_worker": "background.js",

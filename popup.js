@@ -1,4 +1,6 @@
 const modeEl = document.getElementById("mode");
+const groupingMethodEl = document.getElementById("groupingMethod");
+const profileScopeEl = document.getElementById("profileScope");
 const maxTabsEl = document.getElementById("maxTabsPerWindow");
 const includePinnedEl = document.getElementById("includePinned");
 const separateWorkspaceEl = document.getElementById("separateGoogleWorkspace");
@@ -13,10 +15,24 @@ const searchInputEl = document.getElementById("searchInput");
 const searchResultsEl = document.getElementById("searchResults");
 const recentTabsEl = document.getElementById("recentTabs");
 const organizeBtn = document.getElementById("organizeBtn");
+const gleanOrganizeBtn = document.getElementById("gleanOrganizeBtn");
 const cleanupBtn = document.getElementById("cleanupBtn");
 const restoreBtn = document.getElementById("restoreBtn");
 const dashboardBtn = document.getElementById("dashboardBtn");
 const statusEl = document.getElementById("status");
+
+const gleanToggleBtn = document.getElementById("gleanToggleBtn");
+const gleanConfigPanel = document.getElementById("gleanConfigPanel");
+const gleanInstanceEl = document.getElementById("gleanInstance");
+const gleanTokenEl = document.getElementById("gleanToken");
+const gleanSaveBtn = document.getElementById("gleanSaveBtn");
+const gleanClearBtn = document.getElementById("gleanClearBtn");
+const gleanStatusEl = document.getElementById("gleanStatus");
+const gleanErrorPanel = document.getElementById("gleanErrorPanel");
+const gleanErrorMessage = document.getElementById("gleanErrorMessage");
+const gleanRetryBtn = document.getElementById("gleanRetryBtn");
+const gleanFallbackBtn = document.getElementById("gleanFallbackBtn");
+
 let searchTimer = null;
 
 function setStatus(text) {
@@ -33,6 +49,8 @@ function updateScheduleVisibility() {
 function collectSettings() {
   return {
     mode: modeEl.value,
+    groupingMethod: groupingMethodEl.value,
+    profileScope: profileScopeEl.value,
     maxTabsPerWindow: Math.max(1, Number(maxTabsEl.value) || 10),
     includePinned: includePinnedEl.checked,
     separateGoogleWorkspace: separateWorkspaceEl.checked,
@@ -50,10 +68,44 @@ async function sendMessage(type, payload = {}) {
   return response.result;
 }
 
+function setGleanStatus(text, type) {
+  gleanStatusEl.textContent = text;
+  gleanStatusEl.className = `glean-status ${type || ""}`;
+}
+
+async function loadGleanConfig() {
+  try {
+    const result = await sendMessage("GET_GLEAN_CONFIG");
+    if (result.configured) {
+      gleanOrganizeBtn.disabled = false;
+      setGleanStatus("Connected", "ok");
+      gleanToggleBtn.textContent = "Settings";
+      if (result.instance) gleanInstanceEl.value = result.instance;
+    } else {
+      gleanOrganizeBtn.disabled = true;
+      setGleanStatus("Not configured", "");
+      gleanToggleBtn.textContent = "Configure";
+    }
+  } catch {
+    gleanOrganizeBtn.disabled = true;
+  }
+}
+
+function hideGleanError() {
+  gleanErrorPanel.style.display = "none";
+}
+
+function showGleanError(message) {
+  gleanErrorMessage.textContent = message;
+  gleanErrorPanel.style.display = "block";
+}
+
 async function loadSettings() {
   try {
     const settings = await sendMessage("GET_SETTINGS");
     modeEl.value = settings.mode;
+    groupingMethodEl.value = settings.groupingMethod;
+    profileScopeEl.value = settings.profileScope;
     maxTabsEl.value = settings.maxTabsPerWindow;
     includePinnedEl.checked = settings.includePinned;
     separateWorkspaceEl.checked = settings.separateGoogleWorkspace;
@@ -68,10 +120,10 @@ async function loadSettings() {
       setStatus(`Next auto organize: ${new Date(settings.schedule.nextRunAt).toLocaleString()}`);
     }
 
-    // Put typing focus in search on popup open.
     searchInputEl.focus();
     searchInputEl.select();
     await loadRecentTabs();
+    await loadGleanConfig();
   } catch (error) {
     setStatus(error.message);
   }
@@ -180,13 +232,93 @@ organizeBtn.addEventListener("click", async () => {
   organizeBtn.disabled = true;
 
   try {
-    const result = await sendMessage("ORGANIZE_TABS", { settings: collectSettings() });
-    setStatus(`Done: ${result.totalTabs} tabs, ${result.totalGroups} clusters, ${result.totalWindows} windows.`);
+    const [currentWindow] = await chrome.windows.getAll({ populate: false }).then(
+      (wins) => wins.filter((w) => w.focused)
+    );
+    const sourceWindowId = currentWindow?.id || undefined;
+    const result = await sendMessage("ORGANIZE_TABS", { settings: collectSettings(), sourceWindowId });
+    const unit = result.totalWindows === 1 ? "window" : "windows";
+    setStatus(`Done: ${result.totalTabs} tabs, ${result.totalGroups} groups, ${result.totalWindows} ${unit}.`);
   } catch (error) {
     setStatus(error.message);
   } finally {
     organizeBtn.disabled = false;
   }
+});
+
+gleanToggleBtn.addEventListener("click", () => {
+  const visible = gleanConfigPanel.style.display !== "none";
+  gleanConfigPanel.style.display = visible ? "none" : "block";
+});
+
+gleanSaveBtn.addEventListener("click", async () => {
+  const instance = gleanInstanceEl.value.trim();
+  const token = gleanTokenEl.value.trim();
+  if (!instance || !token) {
+    setGleanStatus("Both fields required", "err");
+    return;
+  }
+  try {
+    await sendMessage("SAVE_GLEAN_CONFIG", { token, instance });
+    gleanTokenEl.value = "";
+    setGleanStatus("Saved", "ok");
+    await loadGleanConfig();
+    gleanConfigPanel.style.display = "none";
+  } catch (error) {
+    setGleanStatus(error.message, "err");
+  }
+});
+
+gleanClearBtn.addEventListener("click", async () => {
+  try {
+    await sendMessage("CLEAR_GLEAN_CONFIG");
+    gleanInstanceEl.value = "";
+    gleanTokenEl.value = "";
+    setGleanStatus("Cleared", "");
+    await loadGleanConfig();
+  } catch (error) {
+    setGleanStatus(error.message, "err");
+  }
+});
+
+async function runGleanOrganize() {
+  hideGleanError();
+  setStatus("Organizing with Glean AI...");
+  gleanOrganizeBtn.disabled = true;
+
+  try {
+    const [currentWindow] = await chrome.windows.getAll({ populate: false }).then(
+      (wins) => wins.filter((w) => w.focused)
+    );
+    const sourceWindowId = currentWindow?.id || undefined;
+    const result = await sendMessage("ORGANIZE_TABS_GLEAN", {
+      settings: collectSettings(),
+      sourceWindowId,
+      preserveFocus: true
+    });
+
+    const summaryParts = result.gleanGroups.map(
+      (g) => `${g.groupName} (${g.tabCount})`
+    );
+    setStatus(`Glean organized ${result.totalTabs} tabs into ${result.totalGroups} groups: ${summaryParts.join(", ")}`);
+  } catch (error) {
+    showGleanError(error.message);
+    setStatus("Glean organization failed.");
+  } finally {
+    gleanOrganizeBtn.disabled = false;
+  }
+}
+
+gleanOrganizeBtn.addEventListener("click", runGleanOrganize);
+
+gleanRetryBtn.addEventListener("click", () => {
+  hideGleanError();
+  runGleanOrganize();
+});
+
+gleanFallbackBtn.addEventListener("click", async () => {
+  hideGleanError();
+  organizeBtn.click();
 });
 
 cleanupBtn.addEventListener("click", async () => {
@@ -262,6 +394,8 @@ searchInputEl.addEventListener("input", () => {
 
 for (const element of [
   modeEl,
+  groupingMethodEl,
+  profileScopeEl,
   maxTabsEl,
   includePinnedEl,
   separateWorkspaceEl,

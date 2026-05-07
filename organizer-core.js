@@ -1,5 +1,7 @@
 export const DEFAULT_SETTINGS = {
   mode: "smart",
+  groupingMethod: "tabGroups",
+  profileScope: "allWindows",
   maxTabsPerWindow: 10,
   includePinned: false,
   separateGoogleWorkspace: true,
@@ -15,6 +17,16 @@ export const ORGANIZE_MODES = [
   { value: "domain", label: "Domain" },
   { value: "title", label: "Title similarity" },
   { value: "category", label: "Category first" }
+];
+
+export const GROUPING_METHODS = [
+  { value: "windows", label: "Separate windows" },
+  { value: "tabGroups", label: "Tab groups (single window)" }
+];
+
+export const PROFILE_SCOPES = [
+  { value: "allWindows", label: "All windows (all profiles)" },
+  { value: "currentWindow", label: "Current window only" }
 ];
 
 const STOP_WORDS = new Set([
@@ -199,6 +211,23 @@ export function planWindowsByGroup(items, maxTabsPerWindow, settings = {}) {
 
   if (currentWindow.length) windows.push(currentWindow);
   return windows;
+}
+
+export function planTabGroups(items, settings = {}) {
+  if (!items.length) return [];
+
+  const mode = settings.mode || "smart";
+  const groupMap = new Map();
+
+  for (const item of items) {
+    const bucketKey = windowBucketKeyForItem(item, mode);
+    if (!groupMap.has(bucketKey)) {
+      groupMap.set(bucketKey, { label: item.groupLabel, color: item.groupColor, items: [] });
+    }
+    groupMap.get(bucketKey).items.push(item);
+  }
+
+  return Array.from(groupMap.values());
 }
 
 export function summarizeCounts(items, chunks) {

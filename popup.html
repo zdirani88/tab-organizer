@@ -44,6 +44,24 @@
         </label>
       </div>
 
+      <div class="grid-two">
+        <label class="field compact">
+          <span>Group into</span>
+          <select id="groupingMethod">
+            <option value="windows">Separate windows</option>
+            <option value="tabGroups">Tab groups (single window)</option>
+          </select>
+        </label>
+
+        <label class="field compact">
+          <span>Scope</span>
+          <select id="profileScope">
+            <option value="allWindows">All windows</option>
+            <option value="currentWindow">Current window only</option>
+          </select>
+        </label>
+      </div>
+
       <div class="check-grid">
         <label class="checkbox-row compact-row">
           <input id="includePinned" type="checkbox" />
@@ -99,10 +117,43 @@
       </div>
     </section>
 
+    <section class="glean-section">
+      <div class="glean-header">
+        <span class="section-title">Glean AI Organization</span>
+        <button id="gleanToggleBtn" type="button" class="glean-toggle-btn">Configure</button>
+      </div>
+      <div id="gleanConfigPanel" class="glean-config-panel" style="display:none;">
+        <label class="field compact">
+          <span>Glean instance</span>
+          <input id="gleanInstance" type="text" placeholder="your-company" />
+        </label>
+        <label class="field compact">
+          <span>API token</span>
+          <input id="gleanToken" type="password" placeholder="Bearer token" />
+        </label>
+        <div class="glean-config-actions">
+          <button id="gleanSaveBtn" type="button" class="glean-save-btn">Save</button>
+          <button id="gleanClearBtn" type="button" class="glean-clear-btn">Clear</button>
+          <span id="gleanStatus" class="glean-status"></span>
+        </div>
+      </div>
+    </section>
+
     <div class="action-grid">
       <button id="organizeBtn" class="primary">Auto organize now</button>
+      <button id="gleanOrganizeBtn" class="glean-btn" disabled>Organize with Glean</button>
+    </div>
+    <div class="action-grid-secondary">
       <button id="cleanupBtn" class="secondary">Cleanup tabs</button>
       <button id="restoreBtn" class="secondary">Restore</button>
+    </div>
+
+    <div id="gleanErrorPanel" class="glean-error-panel" style="display:none;">
+      <p id="gleanErrorMessage" class="glean-error-msg"></p>
+      <div class="glean-error-actions">
+        <button id="gleanRetryBtn" type="button" class="primary">Try again</button>
+        <button id="gleanFallbackBtn" type="button" class="secondary">Organize without Glean</button>
+      </div>
     </div>
 
     <p id="status" aria-live="polite"></p>

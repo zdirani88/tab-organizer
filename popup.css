@@ -211,10 +211,132 @@ button {
   color: var(--text);
 }
 
+.glean-section {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.glean-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.glean-toggle-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.glean-toggle-btn:hover {
+  background: #e8eef9;
+}
+
+.glean-config-panel {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.glean-config-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.glean-save-btn {
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  padding: 6px 14px;
+}
+
+.glean-clear-btn {
+  background: #fff2f4;
+  border: 1px solid #f1cbd2;
+  color: #9c2136;
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+.glean-status {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+.glean-status.ok {
+  color: #0a8f60;
+}
+
+.glean-status.err {
+  color: #b42336;
+}
+
+.glean-btn {
+  background: linear-gradient(135deg, #6366f1, #0b5fff);
+  color: #fff;
+  font-weight: 700;
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 10px;
+  cursor: pointer;
+}
+
+.glean-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4f46e5, #0042bd);
+}
+
+.glean-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .action-grid {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 0.8fr;
+  grid-template-columns: 1fr 1fr;
   gap: 6px;
+}
+
+.action-grid-secondary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.glean-error-panel {
+  background: #fff8f8;
+  border: 1px solid #f1cbd2;
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 8px;
+}
+
+.glean-error-msg {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #9c2136;
+  line-height: 1.4;
+}
+
+.glean-error-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.glean-error-actions button {
+  font-size: 12px;
+  padding: 6px 12px;
 }
 
 #scheduleIntervalWrap {
